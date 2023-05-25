@@ -1,0 +1,22 @@
+{
+  "name": "satellite-trajectories",
+  "version": "1.0.0",
+  "description": "This repository contains the source code for the project based on tracking satellite trajectories for the course module Advanced Databases.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/namrata-karmakar/satellite-trajectories.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/namrata-karmakar/satellite-trajectories/issues"
+  },
+  "homepage": "https://github.com/namrata-karmakar/satellite-trajectories#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
