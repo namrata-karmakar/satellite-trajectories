@@ -7,4 +7,8 @@ Pre-requisites: nodemon installed globally. (if not, run npm i nodemon --global)
 
 1. Clone the repository.
 2. Navigate into the project directory.
-3. To run the server, run the command "cd server". Then run the command "npm run start".
+
+Server:
+1. To run the server, run the command "cd server".
+2. Run "npm i".
+3. Run "npm run start".
