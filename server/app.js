@@ -3,8 +3,11 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 
 const neo4j = require('neo4j-driver');
-const redis = require('redis');
+const Redis = require('ioredis');
 const mongoose = require('mongoose');
+
+const { SatelliteRoutes } = require('./routes/satelliteRoutes');
+
 
 dotenv.config();
 
@@ -14,6 +17,7 @@ app.use(cors());
 
 app.use(express.json());
 
+app.use('/api', SatelliteRoutes.getRouter());
 
 // connect to mongodb
 const mongodb_uri = process.env.MONGODB_URI;
@@ -42,18 +46,33 @@ const driver = neo4j.driver(
 );
 const session = driver.session();
 
-async function checkConnectivity() {
+async function checkNeo4jConnectivity() {
     try {
         const serverInfo = await driver.getServerInfo();
         console.log('Server info:', serverInfo);
         console.log('Connected to Neo4j');
     } catch (error) {
-        console.error('Error connecting to the database', error);
+        console.error('Error connecting to the Neo4j database', error);
     } finally {
         driver.close();
     }
 }
 
-checkConnectivity();
+checkNeo4jConnectivity();
+
+//connect to redis cache
+const redis = new Redis({
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    password: process.env.REDIS_PASSWORD
+});
+
+redis.on('connect', () => {
+    console.log('Redis connected');
+});
+
+redis.on('error', (error) => {
+    console.error('Redis connection error:', error);
+});
 
 module.exports = app;
