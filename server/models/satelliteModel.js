@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const satelliteSchema = new mongoose.Schema({
   satellite_id: {
@@ -12,6 +12,6 @@ const satelliteSchema = new mongoose.Schema({
   // Other satellite properties
 });
 
-const Satellite = mongoose.model('Satellite', satelliteSchema);
+const SatelliteModel = mongoose.model('Satellite', satelliteSchema);
 
-module.exports = Satellite;
+export default SatelliteModel;
