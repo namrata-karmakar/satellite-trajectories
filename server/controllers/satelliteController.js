@@ -1,16 +1,15 @@
-const { SatelliteService } = require('../services/satelliteService');
+import SatelliteService from '../services/satelliteService.js';
 
 class SatelliteController {
 
-    // Controller action to get satellite information
-    static async getSatelliteInfo(req, res) {
+    // Controller action to predict satellite orbit
+    static async predictSatellitePositionsForStarlink(req, res) {
         try {
             const satelliteService = new SatelliteService();
-            const satelliteId = req.params.id;
-            const satelliteInfo = await satelliteService.getSatelliteInfo(satelliteId);
-            res.json(satelliteInfo);
+            const orbitPrediction = await satelliteService.predictSatellitePositionsForStarlink();
+            res.json(orbitPrediction);
         } catch (error) {
-            res.status(500).json({ error: 'An error occurred while fetching satellite information.' });
+            res.status(500).json({ error: 'An error occurred while predicting satellite location.' });
         }
     };
 
@@ -19,7 +18,7 @@ class SatelliteController {
         try {
             const satelliteService = new SatelliteService();
             const satelliteId = req.params.id;
-            console.log("controller", satelliteId);
+            console.log("controller");
             const orbitPrediction = await satelliteService.predictSatellitePositionById(satelliteId);
             res.json(orbitPrediction);
         } catch (error) {
@@ -28,4 +27,4 @@ class SatelliteController {
     };
 }
 
-module.exports = { SatelliteController }
+export default SatelliteController;

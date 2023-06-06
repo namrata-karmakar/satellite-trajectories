@@ -1,13 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 
-const neo4j = require('neo4j-driver');
-const Redis = require('ioredis');
-const mongoose = require('mongoose');
-
-const { SatelliteRoutes } = require('./routes/satelliteRoutes');
-
+import neo4j from 'neo4j-driver';
+import Redis from 'ioredis';
+import mongoose from 'mongoose';
+import SatelliteRoutes from './routes/satelliteRoutes.js';
 
 dotenv.config();
 
@@ -16,6 +14,10 @@ const app = express();
 app.use(cors());
 
 app.use(express.json());
+
+app.get('/alive', (req, res) => {
+    res.send('Hello World!');
+}); 
 
 app.use('/api', SatelliteRoutes.getRouter());
 
@@ -75,4 +77,4 @@ redis.on('error', (error) => {
     console.error('Redis connection error:', error);
 });
 
-module.exports = app;
+export default app;
