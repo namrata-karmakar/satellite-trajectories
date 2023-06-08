@@ -6,12 +6,19 @@ class SatelliteService {
 
     async predictSatellitePositionsForStarlink() {
         try {
-            const tleSets = await this.processCelestrakData();
+            const data = await this.getCelestrakData();
+            const tleSets = await this.processCelestrakData(data);
+            const starlinkPositions = [];
             tleSets.forEach((tleSet) => {
-                this.predictSatellitePosition(tleSet[0], tleSet[1], tleSet[2]);
+                if (!undefined) {
+                    const position = this.predictSatellitePosition(tleSet[0], tleSet[1], tleSet[2]);
+                    starlinkPositions.push(position);
+                }
             })
+            return starlinkPositions;
         } catch (error) {
-
+            console.error('Error:', error.message);
+            throw error;
         }
     }
 
@@ -27,12 +34,13 @@ class SatelliteService {
                 const tleLine0 = cleanedTLESet[0];
                 const tleLine1 = cleanedTLESet[1];
                 const tleLine2 = cleanedTLESet[2];
-                this.predictSatellitePosition(tleLine0, tleLine1, tleLine2);
+                return this.predictSatellitePosition(tleLine0, tleLine1, tleLine2);
             } else {
                 throw new Error(`Request failed with status code ${response.status}`);
             }
         } catch (error) {
-            throw new Error('An error occurred while predicting satellite position');
+            console.error('Error:', error.message);
+            throw error;
         }
     }
 
@@ -56,30 +64,35 @@ class SatelliteService {
         //  Convert the RADIANS to DEGREES.
         const longitudeDeg = satellite.degreesLong(longitude),
             latitudeDeg = satellite.degreesLat(latitude);
-        console.log("Satellite", tle0);
-        console.log("longitudeDeg", longitudeDeg);
-        console.log("latitudeDeg", latitudeDeg);
-        console.log('------------------------');
+        // console.log("Satellite", tle0);
+        // console.log("longitudeDeg", longitudeDeg);
+        // console.log("latitudeDeg", latitudeDeg);
+        // console.log('------------------------');
+        const satellitePosition = {
+            satellite: tle0,
+            latitude: latitudeDeg,
+            longitude: longitudeDeg
+        }
+        return satellitePosition;
     }
 
-    async processCelestrakData() {
+    async processCelestrakData(data) {
         try {
-            const data = await this.getCelestrakData();
             const tleLines = data.split('\n');
             const tleSets = [];
             for (let i = 0; i < tleLines.length; i += 3) {
                 const tleSet = tleLines.slice(i, i + 3);
-                tleSets.push(tleSet);
+                    tleSets.push(tleSet);
             }
             const cleanedTleSets = [];
-            console.log("here*");
             tleSets.forEach(tleSet => {
                 const cleanedTLESet = tleSet.map(line => line.replace('\r', ''));
                 cleanedTleSets.push(cleanedTLESet);
             });
             return cleanedTleSets;
         } catch (error) {
-
+            console.error('Error:', error.message);
+            throw error;
         }
     }
 
@@ -90,7 +103,7 @@ class SatelliteService {
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.text();
-                return data;
+                return data.trim();
             } else {
                 throw new Error(`Request failed with status code ${response.status}`);
             }
@@ -99,7 +112,6 @@ class SatelliteService {
             throw error;
         }
     }
-
 
 }
 

@@ -18,7 +18,6 @@ class SatelliteController {
         try {
             const satelliteService = new SatelliteService();
             const satelliteId = req.params.id;
-            console.log("controller");
             const orbitPrediction = await satelliteService.predictSatellitePositionById(satelliteId);
             res.json(orbitPrediction);
         } catch (error) {
