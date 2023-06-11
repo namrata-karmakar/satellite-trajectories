@@ -10,6 +10,9 @@ class SatelliteRoutes {
 
         // Route for predicting satellite position
         router.get('/predictSatellitePosition/norad_cat_id/:id', SatelliteController.predictSatellitePositionById);
+        
+        // Route for updating starlink satellite relations with ground station based on latest location of satellite
+        router.get('/updateStarlinkGroundStationRelationships', SatelliteController.updateStarlinkGroundStationRelationships);
 
         return router;
     }
