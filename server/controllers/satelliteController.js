@@ -24,6 +24,17 @@ class SatelliteController {
             res.status(500).json({ error: 'An error occurred while predicting satellite location.' });
         }
     };
+
+    static async updateStarlinkGroundStationRelationships(req, res) {
+        try {
+            const satelliteService = new SatelliteService();
+            const response = await satelliteService.updateStarlinkGroundStationRelationships();
+            res.json(response);
+        } catch (error) {
+            res.status(500).json({ error: 'An error occurred while predicting satellite location.' });
+            
+        }
+    }
 }
 
 export default SatelliteController;

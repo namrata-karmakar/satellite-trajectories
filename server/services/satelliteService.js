@@ -2,8 +2,8 @@ import fetch from 'node-fetch';
 import satellite from 'satellite.js';
 import { parse } from 'json2csv';
 import UploadToS3Service from './uploadToS3Service.js';
-import fs from 'fs';
-
+import { promises as fsPromises } from 'fs';
+import { driver } from '../app.js';
 class SatelliteService {
 
     async predictSatellitePositionsForStarlink() {
@@ -17,9 +17,9 @@ class SatelliteService {
                     starlinkPositions.push(position);
                 }
             })
-            this.convertJsonToCsv(starlinkPositions);
+            await this.convertJsonToCsv(starlinkPositions);
             const uploadToS3Service = new UploadToS3Service();
-            uploadToS3Service.uploadCsvToS3('starlink-satellite-locations');
+            await uploadToS3Service.uploadCsvToS3('starlink-satellite-locations');
             return starlinkPositions;
         } catch (error) {
             console.error('Error:', error.message);
@@ -50,23 +50,28 @@ class SatelliteService {
     }
 
     predictSatellitePosition(tle0, tle1, tle2) {
-        console.log("tle0", tle0);
-        console.log("tle1", tle1);
-        console.log("tle2", tle2);
-
+        // Initialize a satellite record
         const satrec = satellite.twoline2satrec(tle1, tle2);
 
+        // Propagate satellite using a JavaScript Date
         const positionAndVelocity = satellite.propagate(satrec, new Date());
 
+        // The position_velocity result is a key-value pair of ECI coordinates.
+        // These are the base results from which all other coordinates are derived.
         const positionEci = positionAndVelocity.position;
 
+        // You will need GMST for some of the coordinate transforms.
+        // http://en.wikipedia.org/wiki/Sidereal_time#Definition
         var gmst = satellite.gstime(new Date());
 
+        // You can get Geodetic coordinates
         const positionGd = satellite.eciToGeodetic(positionEci, gmst);
 
+        // Geodetic coords are accessed via `longitude`, `latitude`, `height`.
         const longitude = positionGd.longitude,
             latitude = positionGd.latitude;
 
+        //  Convert the RADIANS to DEGREES.
         const longitudeDeg = satellite.degreesLong(longitude),
             latitudeDeg = satellite.degreesLat(latitude);
         // console.log("Satellite", tle0);
@@ -100,7 +105,6 @@ class SatelliteService {
             });
             return cleanedTleSets;
         } catch (error) {
-            console.error('Error:', error.message);
             throw error;
         }
     }
@@ -117,7 +121,6 @@ class SatelliteService {
                 throw new Error(`Request failed with status code ${response.status}`);
             }
         } catch (error) {
-            console.error('Error:', error.message);
             throw error;
         }
     }
@@ -126,69 +129,59 @@ class SatelliteService {
         const noradCatIdPattern = /^\d+\s(\d+)/;
         const noradCatIdMatch = tle2.match(noradCatIdPattern);
         const noradCatId = noradCatIdMatch ? noradCatIdMatch[1] : null;
-        return noradCatId;
+        return parseInt(noradCatId);
     }
 
-    convertJsonToCsv(jsonData) {
+    async convertJsonToCsv(jsonData) {
         const csvData = parse(jsonData);
-
         const filePath = 'datasets/starlink-satellite-locations.csv';
-
-        fs.writeFile(filePath, csvData, (error) => {
-            if (error) throw error;
-            console.log('CSV file has been saved.');
-        });
+        try {
+            await fsPromises.writeFile(filePath, csvData);
+            console.log(`CSV file has been saved at ${filePath}`);
+        } catch (error) {
+            throw error;
+        }
     }
 
-    updateStarlinkPositions() {
-        const cypherQuery = `LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/starlink-satellite-locations.csv' AS row
-        MATCH (s:starlinkSatellite {noradCatId: row.noradCatId})
-        SET s.latitude = toFloat(row.latitude), s.longitude = toFloat(row.longitude)`
-
-        // Start a Neo4j session
+    async updateStarlinkPositionsInNeo4j() {
         const session = driver.session();
-        session
-            .run(cypherQuery)
-            .then(result => {
-                console.log(`Updated position for starlink satellites`);
-            })
-            .catch(error => {
-                console.error(`Error updating position for starlink satellites:`, error);
-            });
-
-        // Close the session and driver when all updates are complete
-        session.close(() => {
-            driver.close();
-        });
+        // let result;
+        try {
+            const cypherQuery = `LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/starlink-satellite-locations.csv' AS row
+            MATCH (s:starlinkSatellite {noradCatId: row.noradCatId})
+            SET s.latitude = toFloat(row.latitude), s.longitude = toFloat(row.longitude)`
+            await session.run(cypherQuery);
+        } catch (error) {
+            throw error;
+        } finally {
+            session.close();
+        }
     }
 
-    updateStarlinkGroundStationRelation() {
-        const cypherQuery = `MATCH (s:starlinkSatellite), (g:groundStation)
-            WITH s, g, point.distance(
-            point({latitude: s.latitude, longitude: s.longitude}),
-            point({latitude: g.latitude, longitude: g.longitude})
-            ) AS dist
-            ORDER BY dist
-            WITH s, COLLECT(g) AS closestStations, MIN(dist) AS minDist
-            FOREACH (cs IN closestStations[0..1] |
-            MERGE (s)-[:CLOSEST_TO {distance: minDist}]->(cs)
-            )`
-
-        // Start a Neo4j session
+    async updateStarlinkGroundStationRelationships() {
         const session = driver.session();
-        session
-            .run(cypherQuery)
-            .then(result => {
-                console.log(`Updated position for starlink satellites`);
-            })
-            .catch(error => {
-                console.error(`Error updating position for starlink satellites:`, error);
-            });
-
-        // Close the session and driver when all updates are complete
-        session.close(() => {
-            driver.close();
-        });
+        try {
+            await this.predictSatellitePositionsForStarlink();
+            await this.updateStarlinkPositionsInNeo4j();
+            const cypherQuery = `MATCH (s:Satellite)-[r:CLOSEST_TO]->(g:GroundStation)
+                DELETE r
+                WITH s
+                MATCH (s:starlinkSatellite), (g:groundStation)
+                WITH s, g, point.distance(
+                point({latitude: s.latitude, longitude: s.longitude}),
+                point({latitude: g.latitude, longitude: g.longitude})
+                ) AS dist
+                ORDER BY dist
+                WITH s, COLLECT(g) AS closestStations, MIN(dist) AS minDist
+                FOREACH (cs IN closestStations[0..1] |
+                MERGE (s)-[:CLOSEST_TO {distance: minDist}]->(cs)
+                )`
+            await session.run(cypherQuery);
+        } catch (error) {
+            throw error;
+        } finally {
+            session.close();
+        }
     }
 }
 
