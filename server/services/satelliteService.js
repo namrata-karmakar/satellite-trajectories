@@ -1,6 +1,8 @@
 import fetch from 'node-fetch';
 import satellite from 'satellite.js';
-import SatelliteModel from '../models/satelliteModel.js';
+import { parse } from 'json2csv';
+import fs from 'fs';
+import UploadToS3Service from './uploadToS3Service.js';
 
 class SatelliteService {
 
@@ -15,6 +17,9 @@ class SatelliteService {
                     starlinkPositions.push(position);
                 }
             })
+            this.convertJsonToCsv(starlinkPositions);
+            const uploadToS3Service = new UploadToS3Service();
+            uploadToS3Service.uploadCsvToS3('starlink-satellite-locations');
             return starlinkPositions;
         } catch (error) {
             console.error('Error:', error.message);
@@ -45,11 +50,12 @@ class SatelliteService {
     }
 
     predictSatellitePosition(tle0, tle1, tle2) {
-
-        // Parse TLE data
+        console.log("tle0", tle0);
+        console.log("tle1", tle1);
+        console.log("tle2", tle2);
+        
         const satrec = satellite.twoline2satrec(tle1, tle2);
 
-        // Generate satellite position at current time
         const positionAndVelocity = satellite.propagate(satrec, new Date());
 
         const positionEci = positionAndVelocity.position;
@@ -61,14 +67,17 @@ class SatelliteService {
         const longitude = positionGd.longitude,
             latitude = positionGd.latitude;
 
-        //  Convert the RADIANS to DEGREES.
         const longitudeDeg = satellite.degreesLong(longitude),
             latitudeDeg = satellite.degreesLat(latitude);
         // console.log("Satellite", tle0);
         // console.log("longitudeDeg", longitudeDeg);
         // console.log("latitudeDeg", latitudeDeg);
         // console.log('------------------------');
+
+        const noradCatId = this.extractNoradCatId(tle2);
+
         const satellitePosition = {
+            noradCatId: noradCatId,
             satellite: tle0,
             latitude: latitudeDeg,
             longitude: longitudeDeg
@@ -82,7 +91,7 @@ class SatelliteService {
             const tleSets = [];
             for (let i = 0; i < tleLines.length; i += 3) {
                 const tleSet = tleLines.slice(i, i + 3);
-                    tleSets.push(tleSet);
+                tleSets.push(tleSet);
             }
             const cleanedTleSets = [];
             tleSets.forEach(tleSet => {
@@ -113,6 +122,23 @@ class SatelliteService {
         }
     }
 
+    extractNoradCatId(tle2) {
+        const noradCatIdPattern = /^\d+\s(\d+)/;
+        const noradCatIdMatch = tle2.match(noradCatIdPattern);
+        const noradCatId = noradCatIdMatch ? noradCatIdMatch[1] : null;
+        return noradCatId;
+    }
+
+    convertJsonToCsv(jsonData) {
+        const csvData = parse(jsonData);
+
+        const filePath = 'datasets/starlink-satellite-locations.csv';
+
+        fs.writeFile(filePath, csvData, (error) => {
+            if (error) throw error;
+            console.log('CSV file has been saved.');
+        });
+    }
 }
 
 export default SatelliteService;
