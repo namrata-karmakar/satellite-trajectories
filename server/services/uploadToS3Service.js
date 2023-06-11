@@ -4,8 +4,8 @@ class UploadToS3Service {
 
     uploadCsvToS3(fileName) {
         AWS.config.update({
-            accessKeyId: 'AKIA2ORJ3LC3OHQJIK7I',
-            secretAccessKey: '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',
+            accessKeyId: process.env.ACCESS_KEY_ID,
+            secretAccessKey: process.env.SECRET_ACCESS_KEY,
             region: 'eu-central-1'
         });
 
