@@ -1,8 +1,8 @@
 import fetch from 'node-fetch';
 import satellite from 'satellite.js';
 import { parse } from 'json2csv';
-import fs from 'fs';
 import UploadToS3Service from './uploadToS3Service.js';
+import fs from 'fs';
 
 class SatelliteService {
 
@@ -53,7 +53,7 @@ class SatelliteService {
         console.log("tle0", tle0);
         console.log("tle1", tle1);
         console.log("tle2", tle2);
-        
+
         const satrec = satellite.twoline2satrec(tle1, tle2);
 
         const positionAndVelocity = satellite.propagate(satrec, new Date());
@@ -137,6 +137,57 @@ class SatelliteService {
         fs.writeFile(filePath, csvData, (error) => {
             if (error) throw error;
             console.log('CSV file has been saved.');
+        });
+    }
+
+    updateStarlinkPositions() {
+        const cypherQuery = `LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/starlink-satellite-locations.csv' AS row
+        MATCH (s:starlinkSatellite {noradCatId: row.noradCatId})
+        SET s.latitude = toFloat(row.latitude), s.longitude = toFloat(row.longitude)`
+
+        // Start a Neo4j session
+        const session = driver.session();
+        session
+            .run(cypherQuery)
+            .then(result => {
+                console.log(`Updated position for starlink satellites`);
+            })
+            .catch(error => {
+                console.error(`Error updating position for starlink satellites:`, error);
+            });
+
+        // Close the session and driver when all updates are complete
+        session.close(() => {
+            driver.close();
+        });
+    }
+
+    updateStarlinkGroundStationRelation() {
+        const cypherQuery = `MATCH (s:starlinkSatellite), (g:groundStation)
+            WITH s, g, point.distance(
+            point({latitude: s.latitude, longitude: s.longitude}),
+            point({latitude: g.latitude, longitude: g.longitude})
+            ) AS dist
+            ORDER BY dist
+            WITH s, COLLECT(g) AS closestStations, MIN(dist) AS minDist
+            FOREACH (cs IN closestStations[0..1] |
+            MERGE (s)-[:CLOSEST_TO {distance: minDist}]->(cs)
+            )`
+
+        // Start a Neo4j session
+        const session = driver.session();
+        session
+            .run(cypherQuery)
+            .then(result => {
+                console.log(`Updated position for starlink satellites`);
+            })
+            .catch(error => {
+                console.error(`Error updating position for starlink satellites:`, error);
+            });
+
+        // Close the session and driver when all updates are complete
+        session.close(() => {
+            driver.close();
         });
     }
 }
