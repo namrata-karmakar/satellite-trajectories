@@ -1,4 +1,5 @@
 import AWS from 'aws-sdk';
+import fs from 'fs';
 
 class UploadToS3Service {
 
@@ -12,12 +13,12 @@ class UploadToS3Service {
         const s3 = new AWS.S3();
 
         // Read the CSV file
-        const fileContent = fs.readFileSync(`../datasets/${fileName}.csv`);
+        const fileContent = fs.readFileSync(`datasets/${fileName}.csv`);
 
         // Set the parameters for S3 bucket and file upload
         const params = {
             Bucket: 'adb-satellite-project',
-            Key: `/${fileName}.csv`,
+            Key: `${fileName}.csv`,
             Body: fileContent
         };
 
