@@ -7,7 +7,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/visualization" element={<StarlinkVisualization />} />
+        <Route path="/starlinkVisualization" element={<StarlinkVisualization />} />
       </Routes>
     </Router>
   );

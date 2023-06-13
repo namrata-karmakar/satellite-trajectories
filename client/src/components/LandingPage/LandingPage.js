@@ -5,14 +5,15 @@ import './LandingPage.css';
 const LandingPage = () => {
   return (
     <div className="landing-page">
-      <h1 className="landing-page-title">Welcome to Satellite Network Visualization</h1>
+      <h1 className="landing-page-title">Welcome to Satellite Network Visualization &
+        Analysis Platform</h1>
       <p className="landing-page-text">Choose a use case:</p>
       <ul className="landing-page-use-cases">
         <li>
-          <Link to="/usecase1" className="landing-page-link">
+          <Link to="/starlinkVisualization" className="landing-page-link">
             <div className="link-container">
               <span className="link-icon">&#x1F6F0;</span>
-              <span className="link-text">Use Case 1</span>
+              <span className="link-text">Use Case 1: Starlink Visualization - Namrata</span>
             </div>
           </Link>
         </li>
