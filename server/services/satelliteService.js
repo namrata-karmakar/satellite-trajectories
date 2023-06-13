@@ -171,6 +171,29 @@ class SatelliteService {
             session.close();
         }
     }
+
+    async getAllStarlinkGroundStationCountry() {
+        const session = driver.session();
+        try {
+            const cypherQuery = `
+                MATCH (s:StarlinkSatellite)-[:CLOSEST_TO]->(g:GroundStation)-[:IN_COUNTRY]->(c:Country)
+                RETURN s, g, c
+            `;
+            const { records } = await session.run(cypherQuery);
+            console.log('no. of records', records.length);
+            const data = records.map(record => ({
+                satellite: record.get('s').properties,
+                groundStation: record.get('g').properties,
+                country: record.get('c').properties
+              }));
+            //   console.log('data', data);
+            return data;
+        } catch (error) {
+            throw error;
+        } finally {
+            session.close();
+        }
+    }
 }
 
 export default SatelliteService;
