@@ -1,26 +1,32 @@
-LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/starlink-satellite-locations.csv' AS row
-CREATE (s:starlinkSatellite {
-  noradCatId: row.noradCatId,
-  satellite: row.satellite,
-  latitude: toFloat(row.latitude),
-  longitude: toFloat(row.longitude)
+LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/countries.csv' AS countryRow
+CREATE (c:Country { countryCode: countryRow.countryCode, name: countryRow.country })
+
+LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/ground-station-locations.csv' AS groundStnRow
+CREATE (g:GroundStation {
+  id: groundStnRow.id,
+  name: groundStnRow.groundStationCity,
+  latitude: toFloat(groundStnRow.latitude),
+  longitude: toFloat(groundStnRow.longitude),
+  countryCode: groundStnRow.countryCode
 })
 
-LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/ground-station-locations.csv' AS row
-CREATE (g:groundStation {
-  id: row.id,
-  groundStation: row.groundStation,
-  latitude: toFloat(row.latitude),
-  longitude: toFloat(row.longitude)
+LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/starlink-satellite-locations.csv' AS satRow
+CREATE (s:StarlinkSatellite {
+  noradCatId: satRow.noradCatId,
+  name: satRow.name,
+  latitude: toFloat(satRow.latitude),
+  longitude: toFloat(satRow.longitude)
 })
 
-MATCH (s:starlinkSatellite), (g:groundStation)
+MATCH (c:Country), (g:GroundStation)
+WHERE c.countryCode = g.countryCode
+MERGE (g)-[:IN_COUNTRY]->(c)
+
+MATCH (s:StarlinkSatellite), (g:GroundStation)
 WITH s, g, point.distance(
   point({latitude: s.latitude, longitude: s.longitude}),
   point({latitude: g.latitude, longitude: g.longitude})
 ) AS dist
-ORDER BY dist
-WITH s, COLLECT(g) AS closestStations, MIN(dist) AS minDist
-FOREACH (cs IN closestStations[0..1] |
-  MERGE (s)-[:CLOSEST_TO {distance: minDist}]->(cs)
-)
+WHERE dist > 100000 AND dist < 500000
+WITH s, g, dist
+MERGE (s)-[:CLOSEST_TO {distance: dist}]->(g)

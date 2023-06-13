@@ -31,6 +31,7 @@ class SatelliteController {
             const response = await satelliteService.updateStarlinkGroundStationRelationships();
             res.json(response);
         } catch (error) {
+            console.error(error);
             res.status(500).json({ error: 'An error occurred while predicting satellite location.' });
             
         }
