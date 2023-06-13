@@ -50,40 +50,19 @@ class SatelliteService {
     }
 
     predictSatellitePosition(tle0, tle1, tle2) {
-        // Initialize a satellite record
         const satrec = satellite.twoline2satrec(tle1, tle2);
-
-        // Propagate satellite using a JavaScript Date
         const positionAndVelocity = satellite.propagate(satrec, new Date());
-
-        // The position_velocity result is a key-value pair of ECI coordinates.
-        // These are the base results from which all other coordinates are derived.
         const positionEci = positionAndVelocity.position;
-
-        // You will need GMST for some of the coordinate transforms.
-        // http://en.wikipedia.org/wiki/Sidereal_time#Definition
         var gmst = satellite.gstime(new Date());
-
-        // You can get Geodetic coordinates
         const positionGd = satellite.eciToGeodetic(positionEci, gmst);
-
-        // Geodetic coords are accessed via `longitude`, `latitude`, `height`.
         const longitude = positionGd.longitude,
             latitude = positionGd.latitude;
-
-        //  Convert the RADIANS to DEGREES.
         const longitudeDeg = satellite.degreesLong(longitude),
             latitudeDeg = satellite.degreesLat(latitude);
-        // console.log("Satellite", tle0);
-        // console.log("longitudeDeg", longitudeDeg);
-        // console.log("latitudeDeg", latitudeDeg);
-        // console.log('------------------------');
-
         const noradCatId = this.extractNoradCatId(tle2);
-
         const satellitePosition = {
             noradCatId: noradCatId,
-            satellite: tle0,
+            name: tle0,
             latitude: latitudeDeg,
             longitude: longitudeDeg
         }
@@ -145,11 +124,23 @@ class SatelliteService {
 
     async updateStarlinkPositionsInNeo4j() {
         const session = driver.session();
-        // let result;
         try {
             const cypherQuery = `LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/starlink-satellite-locations.csv' AS row
-            MATCH (s:starlinkSatellite {noradCatId: row.noradCatId})
+            MATCH (s:StarlinkSatellite {noradCatId: row.noradCatId})
             SET s.latitude = toFloat(row.latitude), s.longitude = toFloat(row.longitude)`
+            await session.run(cypherQuery);
+        } catch (error) {
+            throw error;
+        } finally {
+            session.close();
+        }
+    }
+
+    async deleteStarlinkGroundStationRelationships() {
+        const session = driver.session();
+        try {
+            const cypherQuery = `MATCH (s:StarlinkSatellite)-[oldRel:CLOSEST_TO]->()
+            DELETE oldRel`;
             await session.run(cypherQuery);
         } catch (error) {
             throw error;
@@ -161,22 +152,19 @@ class SatelliteService {
     async updateStarlinkGroundStationRelationships() {
         const session = driver.session();
         try {
-            await this.predictSatellitePositionsForStarlink();
+            const starlinkPositions = await this.predictSatellitePositionsForStarlink();
             await this.updateStarlinkPositionsInNeo4j();
-            const cypherQuery = `MATCH (s:Satellite)-[r:CLOSEST_TO]->(g:GroundStation)
-                DELETE r
-                WITH s
-                MATCH (s:starlinkSatellite), (g:groundStation)
+            await this.deleteStarlinkGroundStationRelationships();
+            const cypherQuery = `MATCH (s:StarlinkSatellite), (g:GroundStation)
                 WITH s, g, point.distance(
                 point({latitude: s.latitude, longitude: s.longitude}),
                 point({latitude: g.latitude, longitude: g.longitude})
                 ) AS dist
-                ORDER BY dist
-                WITH s, COLLECT(g) AS closestStations, MIN(dist) AS minDist
-                FOREACH (cs IN closestStations[0..1] |
-                MERGE (s)-[:CLOSEST_TO {distance: minDist}]->(cs)
-                )`
+                WHERE dist > 100000 AND dist < 500000
+                WITH s, g, dist
+                MERGE (s)-[:CLOSEST_TO {distance: dist}]->(g)`;
             await session.run(cypherQuery);
+            return starlinkPositions;
         } catch (error) {
             throw error;
         } finally {
