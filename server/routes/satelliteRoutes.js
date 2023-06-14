@@ -13,6 +13,12 @@ class SatelliteRoutes {
         
         //Route for measuring distance between satellites
         router.get('/measureDistance/satelliteId1/:satelliteId1/satelliteId2/:satelliteId2',  SatelliteController.measureDistanceBetweenTwoSatellites);         
+
+        // Route for updating starlink satellite relations with ground station based on latest location of satellite
+        router.put('/updateStarlinkGroundStationRelationships', SatelliteController.updateStarlinkGroundStationRelationships);
+
+        router.get('/getAllStarlinkGroundStationCountry', SatelliteController.getAllStarlinkGroundStationCountry);
+
         return router;
     }
 }

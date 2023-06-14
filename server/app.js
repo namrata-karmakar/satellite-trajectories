@@ -46,6 +46,7 @@ const driver = neo4j.driver(
     neo4j_uri,
     neo4j.auth.basic(neo4j_username, neo4j_password)
 );
+
 const session = driver.session();
 
 async function checkNeo4jConnectivity() {
@@ -55,12 +56,10 @@ async function checkNeo4jConnectivity() {
         console.log('Connected to Neo4j');
     } catch (error) {
         console.error('Error connecting to the Neo4j database', error);
-    } finally {
-        driver.close();
     }
 }
 
-checkNeo4jConnectivity();
+await checkNeo4jConnectivity();
 
 //connect to redis cache
 const redis = new Redis({
@@ -77,4 +76,4 @@ redis.on('error', (error) => {
     console.error('Redis connection error:', error);
 });
 
-export default app;
+export {app, driver};
