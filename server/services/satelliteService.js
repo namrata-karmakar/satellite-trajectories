@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 import satellite from 'satellite.js';
-import SatelliteModel from '../models/satelliteModel.js';
+import { MongoClient } from 'mongodb';
 
 class SatelliteService {
 
@@ -22,13 +22,13 @@ class SatelliteService {
         }
     }
 
-    async predictSatellitePositionById(satelliteId) {
+    async predictSatellitePositionById(satelliteId) {     
         const url = `https://celestrak.org/NORAD/elements/gp.php?CATNR=${satelliteId}`;
-        try {
-            const response = await fetch(url);
+        try {           
+            const response = await fetch(url);         
             if (response.ok) {
                 const data = await response.text();
-                const tleLines = data.split('\n');
+                const tleLines = data.split('\n');          
                 const tleSet = tleLines.slice(0, 3);
                 const cleanedTLESet = tleSet.map(line => line.replace('\r', ''));
                 const tleLine0 = cleanedTLESet[0];
@@ -44,7 +44,7 @@ class SatelliteService {
         }
     }
 
-    predictSatellitePosition(tle0, tle1, tle2) {
+    async predictSatellitePosition(tle0, tle1, tle2) {
 
         // Parse TLE data
         const satrec = satellite.twoline2satrec(tle1, tle2);
@@ -64,18 +64,47 @@ class SatelliteService {
         //  Convert the RADIANS to DEGREES.
         const longitudeDeg = satellite.degreesLong(longitude),
             latitudeDeg = satellite.degreesLat(latitude);
-        // console.log("Satellite", tle0);
-        // console.log("longitudeDeg", longitudeDeg);
-        // console.log("latitudeDeg", latitudeDeg);
-        // console.log('------------------------');
-        const satellitePosition = {
-            satellite: tle0,
-            latitude: latitudeDeg,
-            longitude: longitudeDeg
-        }
-        return satellitePosition;
+            const noradCatId = this.extractNoradCatId(tle2);
+            const satelliteLocation = {            
+                satellite: tle0,
+                noradCatId: noradCatId,
+                latitude: latitudeDeg,
+                longitude: longitudeDeg,
+                timestamp: new Date()
+            }
+
+        await this.saveLocationRecord(satelliteLocation);
     }
 
+
+    async  saveLocationRecord(satelliteLocation){
+        const mongo_url= 'mongodb+srv://cluster0:KY4mU2PD9FIODAdR@cluster0.onbhizh.mongodb.net/';
+        const dbName = 'satellite-trajectories';
+        const client = new MongoClient(mongo_url);
+        await client.connect()
+            const db = client.db(dbName);
+            const collection = db.collection('satellite-location');
+
+            const filter = { noradCatId: satelliteLocation.noradCatId };
+            const update = { $set: satelliteLocation };
+            const options = { upsert: true };
+            
+
+            const record =  await collection.findOneAndUpdate(filter, update, options);
+
+            if (record.ok) {
+                if (record.lastErrorObject.updatedExisting) {
+                  console.log('Location record updated successfully.');
+                } else {
+                  console.log('Location record inserted successfully.');
+                }
+            }else {
+                throw new Error('Failed to save or update location record.');
+              }
+
+            }
+       
+    
     async processCelestrakData(data) {
         try {
             const tleLines = data.split('\n');
@@ -113,6 +142,115 @@ class SatelliteService {
         }
     }
 
-}
+    extractNoradCatId(tle2) {
+        const noradCatIdPattern = /^\d+\s(\d+)/;
+        const noradCatIdMatch = tle2.match(noradCatIdPattern);
+        const noradCatId = noradCatIdMatch ? noradCatIdMatch[1] : null;
+        return parseInt(noradCatId);
+        }
 
+
+    async  measureDistanceBetweenTwoSatellites(id1, id2) {
+            const location1= await this.getLocation(parseInt(id1));
+            const location2= await this.getLocation(parseInt(id2));
+
+            const lat1= location1.latitude;
+            const lon1=location1.longitude;
+            const lat2= location2.latitude;
+            const lon2=location2.longitude;
+
+            const calcdistance= measureDistance(lat1,lat2,lon1,lon2);
+
+            const distance={
+            satellite1Id:id1,
+            satellite2Id:id2,
+            distance: calcdistance,
+            timestamp: new Date()
+            }
+            await this.saveDistanceRecord(distance);
+
+        
+        
+
+        function measureDistance(lat1, lon1, lat2, lon2) {
+            const earthRadius = 6371; // Radius of the Earth in kilometers
+          
+            // Convert latitude and longitude to radians
+            const dLat = satellite.degreesToRadians(lat2 - lat1);
+            const dLon = satellite.degreesToRadians(lon2 - lon1);
+            const dLat1Rad=satellite.degreesToRadians(lat1);
+            const dLat2Rad=satellite.degreesToRadians(lat2);
+          
+            const a =
+              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(dLat1Rad) *
+                Math.cos(dLat2Rad) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+          
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          
+            const distance = earthRadius * c; // Distance in kilometers
+            return distance;
+          }  
+        }
+
+        async saveDistanceRecord(distance){
+            const mongo_url = 'mongodb+srv://cluster0:KY4mU2PD9FIODAdR@cluster0.onbhizh.mongodb.net/';
+            const dbName = 'satellite-trajectories';
+            const client = new MongoClient(mongo_url);
+             await client.connect()
+           
+              const db = client.db(dbName);
+              const collection = db.collection('satellite-distance');
+  
+              const filter = { satellite1Id: distance.satellite1Id, satellite2Id:distance.satellite2Id };
+              const update = { $set: distance };
+              const options = { upsert: true };
+              
+  
+              const record =  await collection.findOneAndUpdate(filter, update, options);
+  
+              if (record.ok) {
+                  if (record.lastErrorObject.updatedExisting) {
+                    console.log('Distance record updated successfully.');
+                  } else {
+                    console.log('Distance record inserted successfully.');
+                  }
+              }else {
+                  throw new Error('Failed to save or update distance record.');
+                }
+  
+              }
+          
+          
+    
+            async getLocation(id){
+                try{
+                const mongo_url = 'mongodb+srv://cluster0:KY4mU2PD9FIODAdR@cluster0.onbhizh.mongodb.net/';
+                const dbName = 'satellite-trajectories';
+                const client = new MongoClient(mongo_url);
+                await client.connect()
+                
+                    const db = client.db(dbName); 
+                    const collection = db.collection('satellite-location'); 
+        
+        
+                    const query = { noradCatId: id };
+                    const projection = { _id: 0, latitude: 1, longitude: 1 };
+                    ;
+                    const result = await collection.findOne(query, { projection});
+                
+                    return result;
+                }
+                catch (error) {
+                    console.error('Failed to get the location', error.message);
+                    throw error;
+    
+                }
+            }
+
+    
+    
+}
 export default SatelliteService;
