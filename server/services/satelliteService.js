@@ -19,7 +19,7 @@ class SatelliteService {
                     const position = this.predictSatellitePosition(tleSet[0], tleSet[1], tleSet[2]);
                     starlinkPositions.push(position);
                 }
-            })
+            });
             await this.convertJsonToCsv(starlinkPositions);
             const uploadToS3Service = new UploadToS3Service();
             await uploadToS3Service.uploadCsvToS3('starlink-satellite-locations');
@@ -54,7 +54,7 @@ class SatelliteService {
         }
     }
 
-    async predictSatellitePosition(tle0, tle1, tle2) {
+    predictSatellitePosition(tle0, tle1, tle2) {
         const satrec = satellite.twoline2satrec(tle1, tle2);
         const positionAndVelocity = satellite.propagate(satrec, new Date());
         const positionEci = positionAndVelocity.position;
@@ -183,8 +183,8 @@ class SatelliteService {
         const session = driver.session();
         try {
             const starlinkPositions = await this.predictSatellitePositionsForStarlink();
-            await this.updateStarlinkPositionsInNeo4j();
             await this.deleteStarlinkGroundStationRelationships();
+            await this.updateStarlinkPositionsInNeo4j();
             const cypherQuery = `MATCH (s:StarlinkSatellite), (g:GroundStation)
                 WITH s, g, point.distance(
                 point({latitude: s.latitude, longitude: s.longitude}),
@@ -210,13 +210,11 @@ class SatelliteService {
                 RETURN s, g, c
             `;
             const { records } = await session.run(cypherQuery);
-            console.log('no. of records', records.length);
             const data = records.map(record => ({
                 satellite: record.get('s').properties,
                 groundStation: record.get('g').properties,
                 country: record.get('c').properties
             }));
-            //   console.log('data', data);
             return data;
         } catch (error) {
             throw error;

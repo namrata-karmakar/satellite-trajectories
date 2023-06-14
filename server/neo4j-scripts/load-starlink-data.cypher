@@ -13,7 +13,7 @@ CREATE (g:GroundStation {
 LOAD CSV WITH HEADERS FROM 'https://adb-satellite-project.s3.eu-central-1.amazonaws.com/starlink-satellite-locations.csv' AS satRow
 CREATE (s:StarlinkSatellite {
   noradCatId: satRow.noradCatId,
-  name: satRow.name,
+  name: satRow.satellite,
   latitude: toFloat(satRow.latitude),
   longitude: toFloat(satRow.longitude)
 })
