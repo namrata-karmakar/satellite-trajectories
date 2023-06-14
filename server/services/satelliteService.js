@@ -78,7 +78,7 @@ class SatelliteService {
 
 
     async  saveLocationRecord(satelliteLocation){
-        const mongo_url= 'mongodb+srv://cluster0:KY4mU2PD9FIODAdR@cluster0.onbhizh.mongodb.net/';
+        const mongo_url= process.env.MONGODB_URI;
         const dbName = 'satellite-trajectories';
         const client = new MongoClient(mongo_url);
         await client.connect()
@@ -196,7 +196,7 @@ class SatelliteService {
         }
 
         async saveDistanceRecord(distance){
-            const mongo_url = 'mongodb+srv://cluster0:KY4mU2PD9FIODAdR@cluster0.onbhizh.mongodb.net/';
+            const mongo_url = process.env.MONGODB_URI;
             const dbName = 'satellite-trajectories';
             const client = new MongoClient(mongo_url);
              await client.connect()
@@ -227,7 +227,7 @@ class SatelliteService {
     
             async getLocation(id){
                 try{
-                const mongo_url = 'mongodb+srv://cluster0:KY4mU2PD9FIODAdR@cluster0.onbhizh.mongodb.net/';
+                const mongo_url = process.env.MONGODB_URI;
                 const dbName = 'satellite-trajectories';
                 const client = new MongoClient(mongo_url);
                 await client.connect()
