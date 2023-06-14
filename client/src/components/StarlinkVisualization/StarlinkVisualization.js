@@ -10,8 +10,6 @@ const StarlinkVisualization = () => {
         const response = await fetch('http://localhost:3000/api/getAllStarlinkGroundStationCountry');
         const jsonData = await response.json();
         setData(jsonData);
-        console.log("data**", data)
-        console.log("data", JSON.stringify(data, null, 2));
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -106,6 +104,7 @@ const StarlinkVisualization = () => {
             [groundStation.latitude, groundStation.longitude],
           ]}
           color="black"
+          weight={1} opacity={0.5}
         />
       );
     });
