@@ -11,6 +11,9 @@ class SatelliteRoutes {
         // Route for predicting satellite position
         router.get('/predictSatellitePosition/norad_cat_id/:id', SatelliteController.predictSatellitePositionById);
         
+        //Route for measuring distance between satellites
+        router.get('/measureDistance/satelliteId1/:satelliteId1/satelliteId2/:satelliteId2',  SatelliteController.measureDistanceBetweenTwoSatellites);         
+
         // Route for updating starlink satellite relations with ground station based on latest location of satellite
         router.put('/updateStarlinkGroundStationRelationships', SatelliteController.updateStarlinkGroundStationRelationships);
 
