@@ -6,7 +6,7 @@ import neo4j from "neo4j-driver";
 import Redis from "ioredis";
 import mongoose from "mongoose";
 import SatelliteRoutes from "./routes/satelliteRoutes.js";
-import { MongoClient } from "mongodb";
+// import { MongoClient } from "mongodb";
 import fetch from "node-fetch";
 
 dotenv.config();
@@ -78,60 +78,102 @@ redis.on("error", (error) => {
   console.error("Redis connection error:", error);
 });
 
-//use case 3 starts--->
+////Swarali's usecase - start
 
-//const mongodb_uri = process.env.MONGODB_URI;
-const client = new MongoClient(mongodb_uri);
-const dbName = "satellite-trajectories";
-const collectionName = "satellite_images";
+app.get('/location', cache, getLatLong)
 
-app.get("/api/query", getImages);
+app.get('/records', getLatestRecords)
 
-async function getImages(req, res, next) {
-  console.log("Inside getImages...");
-  const { startDate, endDate } = req.query;
-  console.log("startDate and endDate in index.js...", req.query);
-  const convertToUTC = (date) => {
-    const utcDate = new Date(date);
-    return utcDate.toISOString();
-  };
-  try {
-    //const client = new MongoClient(mongodb_uri);
-    await client.connect().then(() => console.log("MongoDb Connected..."));
-    const db = client.db(dbName);
-    const collection = db.collection(collectionName);
+const issLocationSchema = new mongoose.Schema({
+    latitude: Number,
+    longitude: Number,
+}, {collection: 'iss_location'});
 
-    const startDateUTC = convertToUTC(startDate);
-    const endDateUTC = convertToUTC(endDate);
+const issData = mongoose.model('issData', issLocationSchema);
 
-    const aggregatedResults = await collection
-      .aggregate([
-        {
-          $match: {
-            timestamp: {
-              $lte: new Date(endDateUTC),
-              $gte: new Date(startDateUTC),
-            },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            url: "$url", // Project the "url" field
-          },
-        },
-      ])
-      .toArray();
-    console.log("aggregatedResults... ", aggregatedResults);
 
-    client.close();
-    res.json(aggregatedResults);
-  } catch (error) {
-    console.error(error);
-    res.status(500);
-  }
+let locationArray = [];
+
+function cache(req, res, next) {
+    console.log("Inside cache...")
+    redis.exists(["latitude", "longitude"], (error, data1) => {
+        if(error) throw error;
+        if(data1 == 2){
+            console.log("Exists...", data1)
+            console.time('Cache Response Time');
+            redis.mget(["latitude","longitude"], (erro, data2) => {
+        
+                if(erro) throw erro;
+        
+                if(data2 != null){
+                    console.log("cache data...",data2)
+                    console.timeEnd('Cache Response Time');
+                    res.send(data2)
+                } else {
+                    next()
+                }
+            })
+        }
+        else{
+            console.log("Does not exist...", data1)
+            next()
+        }
+    })
 }
 
-//use case 3 ends --->
+async function getLatLong(req, res, next){
+    try {
+        console.log("Fetching data...")
+        // console.time('API Response Time');
+        const response = await fetch('http://api.open-notify.org/iss-now.json');
+        const data = await response.json();
+        const location = data.iss_position;
+        console.log("location", location)
+        const myResp = await storeLatLong(location, req, res);
+        // console.log("myResp...",myResp)
+        redis.setex("latitude",12,location.latitude)
+        redis.setex("longitude",12,location.longitude)
+        locationArray[0] = location.latitude
+        locationArray[1] = location.longitude
+        console.timeEnd('API Response Time');
+        res.send(locationArray)
+    } catch (err) {
+        console.error(err);
+        res.status(500);
+    }
+}
 
-export { app, driver };
+async function storeLatLong(location, req, res, next) {
+    const newIssData = new issData({
+        latitude: location.latitude,
+        longitude: location.longitude,
+    });
+
+    return await newIssData.save()
+}
+
+async function getLatestRecords(req, res, next) {
+    try {
+        const latestRecords = await issData.aggregate([
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            { $project: { _id: 0, latitude: '$latitude', longitude: '$longitude' } }
+          ])
+        .then((records) => {
+            res.send(records)
+          console.log(records);
+        //   mongoose.connection.close();
+        })
+        .catch((err) => {
+          console.error(err);
+        //   mongoose.connection.close();
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500);
+    }
+}
+
+////Swarali's usecase - end
+
+export {app, driver};
