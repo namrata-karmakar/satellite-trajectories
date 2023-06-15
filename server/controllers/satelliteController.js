@@ -19,6 +19,7 @@ class SatelliteController {
         try {
             const satelliteService = new SatelliteService();
             const satelliteId = req.params.id;
+
             const orbitPrediction = await satelliteService.predictSatellitePositionById(satelliteId);
             res.json(orbitPrediction);   
         } catch (error) {
@@ -62,11 +63,36 @@ class SatelliteController {
             res.status(500).json({ error: 'An error occurred while getting data' });
         }
     }
-
-    static async getAllSatellitesData(req, res) {
+  
+  static async getAllSatellitesData(req, res) {
         try {
             const satelliteService = new SatelliteService();
             const response = await satelliteService.getAllSatellitesData();
+            res.json(response);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while getting data' });
+        }
+    }
+
+    static async getGroundStationDataById(req, res) {
+        try {
+            const satelliteService = new SatelliteService();
+            const satelliteId = req.params.id;
+            const response = await satelliteService.getGroundStationData(satelliteId);
+            res.json(response);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while getting data' });
+        }
+    }
+
+    static async getResiduals(req, res) {
+        try {
+            const satelliteService = new SatelliteService();
+            const satelliteId = req.params.id;
+            const timestamp = req.params.timestamp;
+            const response = await satelliteService.residualOfSatellite(satelliteId,timestamp);
             res.json(response);
         } catch (error) {
             console.error(error);

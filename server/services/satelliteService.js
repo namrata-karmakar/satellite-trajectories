@@ -6,6 +6,8 @@ import { parse } from 'json2csv';
 import UploadToS3Service from './uploadToS3Service.js';
 import { promises as fsPromises } from 'fs';
 import { driver } from '../app.js';
+import { sqrt, square, cos, sin, acos } from 'mathjs';
+
 
 class SatelliteService {
 
@@ -30,7 +32,7 @@ class SatelliteService {
         }
     }
 
-    async predictSatellitePositionById(satelliteId) {
+    async predictSatellitePositionById(satelliteId,timestamp_ground_station) {
         const url = `https://celestrak.org/NORAD/elements/gp.php?CATNR=${satelliteId}`;
         try {
             const response = await fetch(url);
@@ -42,8 +44,15 @@ class SatelliteService {
                 const tleLine0 = cleanedTLESet[0];
                 const tleLine1 = cleanedTLESet[1];
                 const tleLine2 = cleanedTLESet[2];
-                const satelliteLocation = this.predictSatellitePosition(tleLine0, tleLine1, tleLine2);
-                await this.saveLocationRecord(satelliteLocation);
+                let satelliteLocation;
+                if (timestamp_ground_station){
+                    satelliteLocation = this.predictSatellitePosition(tleLine0, tleLine1, tleLine2,timestamp_ground_station);
+                    await this.savePredictedPositions(satelliteLocation)
+                }
+                else{
+                    satelliteLocation = this.predictSatellitePosition(tleLine0, tleLine1, tleLine2);
+                    await this.saveLocationRecord(satelliteLocation);
+                }
                 return satelliteLocation;
             } else {
                 throw new Error(`Request failed with status code ${response.status}`);
@@ -54,23 +63,55 @@ class SatelliteService {
         }
     }
 
-    predictSatellitePosition(tle0, tle1, tle2) {
+    predictSatellitePosition(tle0, tle1, tle2,timestamp_ground_station) {
         const satrec = satellite.twoline2satrec(tle1, tle2);
-        const positionAndVelocity = satellite.propagate(satrec, new Date());
+        let positionAndVelocity,time_stamp_val;
+        if (timestamp_ground_station){
+            const timestamp_ground_station_conv = new Date(timestamp_ground_station)
+            positionAndVelocity = satellite.propagate(satrec, timestamp_ground_station_conv);
+            time_stamp_val = timestamp_ground_station_conv
+        }
+        else{
+            positionAndVelocity = satellite.propagate(satrec, new Date());
+            time_stamp_val = new Date()
+        }
         const positionEci = positionAndVelocity.position;
         var gmst = satellite.gstime(new Date());
         const positionGd = satellite.eciToGeodetic(positionEci, gmst);
+        const velocityEci = positionAndVelocity.velocity;
         const longitude = positionGd.longitude,
             latitude = positionGd.latitude;
         const longitudeDeg = satellite.degreesLong(longitude),
             latitudeDeg = satellite.degreesLat(latitude);
         const noradCatId = this.extractNoradCatId(tle2);
-        const satelliteLocation = {
-            noradCatId: noradCatId,
-            satellite: tle0,
-            latitude: latitudeDeg,
-            longitude: longitudeDeg,
-            timestamp: new Date()
+        var observerGd = {
+            longitude: satellite.degreesToRadians(-122.0308),
+            latitude: satellite.degreesToRadians(36.9613422),
+            height: 0.370
+        };
+        var positionEcf   = satellite.eciToEcf(positionEci, gmst);
+        var lookAngles    = satellite.ecfToLookAngles(observerGd, positionEcf);
+        const elevation = lookAngles.elevation;
+        if(timestamp_ground_station) { 
+            const satelliteLocation = {
+                noradCatId: noradCatId,
+                satellite: tle0,
+                latitude: latitudeDeg,
+                longitude: longitudeDeg,
+                timestamp: time_stamp_val,
+                latitudeRad : positionGd.latitude,
+                longitudeRad : positionGd.longitude,
+                height : positionGd.height,
+                elevation : elevation
+            }
+        } else {
+              const satelliteLocation = {
+                  noradCatId: noradCatId,
+                  satellite: tle0,
+                  latitude: latitudeDeg,
+                  longitude: longitudeDeg,
+                  timestamp: new Date()
+              }
         }
         return satelliteLocation;
     }
@@ -296,8 +337,6 @@ class SatelliteService {
 
     }
 
-
-
     async getLocation(id) {
         try {
             const mongo_url = process.env.MONGODB_URI;
@@ -323,6 +362,153 @@ class SatelliteService {
         }
     }
 
+    async checkOrbitalType(satelliteId){
+        try{
+            const data = await this.predictSatellitePositionById(satelliteId);
+            const height = data.height
+            const satelliteType = this.OrbitalType(height) 
+            const satelliteorbit = {
+                noradCatId: data.noradCatId,
+                satellite: data.satellite,
+                timestamp: data.timestamp,
+                latitudeRad : data.latitudeRad,
+                longitudeRad : data.longitudeRad,
+                height : height,
+                orbittype : satelliteType,
+                azimuth : data.azimuth,
+                elevation : data.elevation, 
+                rangeSat : data.rangeSat
+            }
+            return satelliteorbit
+        }
+    catch (error) {
+        console.error('Failed to get the Orbit Type', error.message);
+        throw error;
+        }
+    }
+
+    OrbitalType(height){
+        if (height < 1001)
+        return 'Low Earth Orbit'
+        else if (height > 1000 && height<35000)
+        return 'Medium Earth Orbit'
+        else 
+        return 'Geostationary orbit'
+    }
+
+    async getGroundStationData(satelliteId){
+        const id =parseInt(satelliteId)
+        try {
+            const mongo_url = process.env.MONGODB_URI;
+            const dbName = process.env.DB_NAME;
+            const collectionName = process.env.DB_GROUND_COLL;
+            const client = new MongoClient(mongo_url);
+            await client.connect()
+
+            const db = client.db(dbName);
+            const collection = db.collection(collectionName);
+
+            const query = { Norad_Cat_id: id };  
+            console.log("query  ", query)
+
+            const result = await collection.find(query).toArray()
+            console.log("Result", result)
+
+            return result;
+            
+        } catch (error) {
+            console.error('Failed to get the ground station data', error.message);
+            throw error;
+            
+        }
+
+    }
+
+    async savePredictedPositions(satelliteLocation) {
+        const {
+            noradCatId,
+            satellite,
+            latitude,
+            longitude,
+            timestamp,
+            latitudeRad,
+            longitudeRad,
+            height,
+            azimuth,
+            elevation,
+            rangeSat,
+            velocity } = satelliteLocation;
+        try{
+        const mongo_url = process.env.MONGODB_URI;
+        const dbName = process.env.DB_NAME;
+        const collectionName = process.env.DB_GROUND_COLL;
+        const client = new MongoClient(mongo_url);
+        await client.connect()
+
+        const db = client.db(dbName);
+        const collection = db.collection(collectionName);
+
+        const filter = { Norad_Cat_id: noradCatId}
+        const update = { $set:{ "Latest_Latitude(Degrees)":latitude, "Latest_Longitude(Degrees)":longitude,"Latest_Height(km)":height,
+            "Latest_Inclination(Degrees)":elevation} };
+        const options = { upsert: true };
+        
+        const record = await collection.findOneAndUpdate(filter, update, options);
+        console.log("Vals ",record);
+
+        if (record.ok) {
+            if (record.lastErrorObject.updatedExisting) {
+                console.log('Latest positional values updated successfully.');
+            } else {
+                console.log('Latest positional values unsuccessfully.');
+            }
+        } else {
+            throw new Error('Failed to save or update distance record.');
+        }
+    }
+    catch{
+        console.error('Failed to get the insert latest updated data', error.message);
+        throw error;
+
+    }
+
+    }
+
+    // Function to calculate the distance between two geodetic coordinates
+    async residualOfSatellite(satelliteId,timestamp) {
+        try {
+            const data = await this.predictSatellitePositionById(satelliteId,timestamp);
+            const vals = await this.getGroundStationData(satelliteId);
+            const height1 = vals[0]['Last_Height(km)'];
+            const latitude1 = vals[0]['Last_Latitude(Degrees)']
+            const longitude1 = vals[0]['Last_Longitude(Degrees)']
+            const height2 = vals[0]['Latest_Height(km)']
+            const latitude2 = vals[0]['Latest_Latitude(Degrees)']
+            const longitude2 = vals[0]['Latest_Longitude(Degrees)']            
+            
+            const R = 6371; // Radius of the Earth in kilometers
+
+            const x1 = (R + height1) * cos(latitude1) * cos(longitude1);
+            const y1 = (R + height1) * cos(latitude1) * sin(longitude1);
+            const z1 = (R + height1) * sin(latitude1);
+
+            const x2 = (R + height2) * cos(latitude2) * cos(longitude2);
+            const y2 = (R + height2) * cos(latitude2) * sin(longitude2);
+            const z2 = (R + height2) * sin(latitude2);
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dz = z2 - z1;
+
+            return sqrt(square(dx) + square(dy) + square(dz));
+
+        } catch (error) {
+            console.error('Failed to calculate residuals', error.message);
+            throw error;
+        }
+
+  }
+  
     async getAllSatellitesData() {
         try {
             const mongo_url = process.env.MONGODB_URI;
@@ -348,9 +534,5 @@ class SatelliteService {
             throw error;
         }
     }
-
-
-
-
 }
 export default SatelliteService;
