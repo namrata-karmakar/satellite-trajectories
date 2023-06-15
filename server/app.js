@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { MongoClient } from "mongodb";
 
 import neo4j from "neo4j-driver";
 import Redis from "ioredis";
 import mongoose from "mongoose";
 import SatelliteRoutes from "./routes/satelliteRoutes.js";
-import { MongoClient } from "mongodb";
 import fetch from "node-fetch";
 
 dotenv.config();
@@ -78,10 +78,107 @@ redis.on("error", (error) => {
   console.error("Redis connection error:", error);
 });
 
-//use case 3 starts--->
+//iss live location use case starts here-->
+app.get("/location", cache, getLatLong);
 
-//const mongodb_uri = process.env.MONGODB_URI;
-const client = new MongoClient(mongodb_uri);
+app.get("/records", getLatestRecords);
+
+const issLocationSchema = new mongoose.Schema(
+  {
+    latitude: Number,
+    longitude: Number,
+  },
+  { collection: "iss_location" }
+);
+
+const issData = mongoose.model("issData", issLocationSchema);
+
+let locationArray = [];
+
+function cache(req, res, next) {
+  console.log("Inside cache...");
+  redis.exists(["latitude", "longitude"], (error, data1) => {
+    if (error) throw error;
+    if (data1 == 2) {
+      console.log("Exists...", data1);
+      console.time("Cache Response Time");
+      redis.mget(["latitude", "longitude"], (erro, data2) => {
+        if (erro) throw erro;
+
+        if (data2 != null) {
+          console.log("cache data...", data2);
+          console.timeEnd("Cache Response Time");
+          res.send(data2);
+        } else {
+          next();
+        }
+      });
+    } else {
+      console.log("Does not exist...", data1);
+      next();
+    }
+  });
+}
+
+async function getLatLong(req, res, next) {
+  try {
+    console.log("Fetching data...");
+    // console.time('API Response Time');
+    const response = await fetch("http://api.open-notify.org/iss-now.json");
+    const data = await response.json();
+    const location = data.iss_position;
+    console.log("location", location);
+    const myResp = await storeLatLong(location, req, res);
+    // console.log("myResp...",myResp)
+    redis.setex("latitude", 12, location.latitude);
+    redis.setex("longitude", 12, location.longitude);
+    locationArray[0] = location.latitude;
+    locationArray[1] = location.longitude;
+    console.timeEnd("API Response Time");
+    res.send(locationArray);
+  } catch (err) {
+    console.error(err);
+    res.status(500);
+  }
+}
+
+async function storeLatLong(location, req, res, next) {
+  const newIssData = new issData({
+    latitude: location.latitude,
+    longitude: location.longitude,
+  });
+
+  return await newIssData.save();
+}
+
+async function getLatestRecords(req, res, next) {
+  try {
+    const latestRecords = await issData
+      .aggregate([
+        { $sort: { createdAt: -1 } },
+        { $limit: 5 },
+        {
+          $project: { _id: 0, latitude: "$latitude", longitude: "$longitude" },
+        },
+      ])
+      .then((records) => {
+        res.send(records);
+        console.log(records);
+        //   mongoose.connection.close();
+      })
+      .catch((err) => {
+        console.error(err);
+        //   mongoose.connection.close();
+      });
+  } catch (error) {
+    console.error(error);
+    res.status(500);
+  }
+}
+
+//iss live location use case ends here-->
+
+//satellite image use case starts here-->
 const dbName = "satellite-trajectories";
 const collectionName = "satellite_images";
 
@@ -96,7 +193,7 @@ async function getImages(req, res, next) {
     return utcDate.toISOString();
   };
   try {
-    //const client = new MongoClient(mongodb_uri);
+    const client = new MongoClient(mongodb_uri);
     await client.connect().then(() => console.log("MongoDb Connected..."));
     const db = client.db(dbName);
     const collection = db.collection(collectionName);
@@ -117,7 +214,7 @@ async function getImages(req, res, next) {
         {
           $project: {
             _id: 0,
-            url: "$url", // Project the "url" field
+            url: "$url",
           },
         },
       ])
@@ -130,8 +227,7 @@ async function getImages(req, res, next) {
     console.error(error);
     res.status(500);
   }
+  //satellite image use case ends here-->
 }
-
-//use case 3 ends --->
 
 export { app, driver };
