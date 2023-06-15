@@ -87,6 +87,7 @@ class SatelliteService {
         const update = { $set: satelliteLocation };
         const options = { upsert: true };
         const record = await collection.findOneAndUpdate(filter, update, options);
+        client.close();
         if (record.ok) {
             if (record.lastErrorObject.updatedExisting) {
                 console.log('Location record updated successfully.');
@@ -283,6 +284,7 @@ class SatelliteService {
 
 
         const record = await collection.findOneAndUpdate(filter, update, options);
+        client.close();
 
         if (record.ok) {
             if (record.lastErrorObject.updatedExisting) {
@@ -308,12 +310,11 @@ class SatelliteService {
             const db = client.db(dbName);
             const collection = db.collection('satellite-location');
 
-
             const query = { noradCatId: id };
             const projection = { _id: 0, latitude: 1, longitude: 1 };
 
             const result = await collection.findOne(query, { projection });
-
+            client.close();
             return result;
         }
         catch (error) {
@@ -341,12 +342,12 @@ class SatelliteService {
             const projection = { _id: 0, NORAD_CAT_ID: 1, OBJECT_NAME: 1 };
 
             const data = await collection.find(query, { projection }).toArray();
-
+            client.close();
             return data;
         } catch (error) {
             console.error('Error retrieving satellite data:', error);
             throw error;
-        }
+        } 
     }
 
 
