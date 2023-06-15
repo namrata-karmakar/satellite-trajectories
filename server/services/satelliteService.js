@@ -92,7 +92,7 @@ class SatelliteService {
         var positionEcf   = satellite.eciToEcf(positionEci, gmst);
         var lookAngles    = satellite.ecfToLookAngles(observerGd, positionEcf);
         const elevation = lookAngles.elevation;
-        let satelliteLocation;
+         let satelliteLocation;
         if(timestamp_ground_station) { 
             satelliteLocation = {
                 noradCatId: noradCatId,
@@ -111,7 +111,7 @@ class SatelliteService {
                   satellite: tle0,
                   latitude: latitudeDeg,
                   longitude: longitudeDeg,
-                  timestamp: new Date()
+                  timestamp: this.getDate()
               }
         }
         return satelliteLocation;
@@ -303,7 +303,7 @@ class SatelliteService {
             satellite1Id: id1,
             satellite2Id: id2,
             distance: calcdistance,
-            timestamp: new Date()
+            timestamp: this.getDate()
         }
         await this.saveDistanceRecord(distance);
         return distance
@@ -337,6 +337,17 @@ class SatelliteService {
         } else {
             throw new Error('Failed to save or update distance record.');
         }
+
+    }
+
+    getDate(){
+           // Create a UTC date
+            const utcDate = new Date();
+
+            // Convert UTC to CEST (Central European Summer Time)
+            const cestDate = utcDate.toLocaleString("en-US", { timeZone: "Europe/Paris" });
+             
+            return cestDate;
 
     }
 
