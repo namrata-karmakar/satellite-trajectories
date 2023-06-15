@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './components/LandingPage/LandingPage';
 import StarlinkVisualization from './components/StarlinkVisualization/StarlinkVisualization';
 import SatelliteDistanceCalculate from './components/SatelliteDistanceCalculate/SatelliteDistanceCalculate';
-import SatelliteNotInOrbit from './components/SatelliteNotInOrbit/SatelliteNotInOrbit';
+import SatelliteNotInOrbit from './components/SatelitteNotInOrbit/SatelliteNotInOrbit'
 
 function App() {
   return (
