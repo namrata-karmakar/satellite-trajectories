@@ -42,9 +42,9 @@ class SatelliteService {
                 const tleLine0 = cleanedTLESet[0];
                 const tleLine1 = cleanedTLESet[1];
                 const tleLine2 = cleanedTLESet[2];
-                const response = this.predictSatellitePosition(tleLine0, tleLine1, tleLine2);
+                const satelliteLocation = this.predictSatellitePosition(tleLine0, tleLine1, tleLine2);
                 await this.saveLocationRecord(satelliteLocation);
-                return response;
+                return satelliteLocation;
             } else {
                 throw new Error(`Request failed with status code ${response.status}`);
             }
@@ -232,16 +232,6 @@ class SatelliteService {
         const lat2 = location2.latitude;
         const lon2 = location2.longitude;
 
-        const calcdistance = measureDistance(lat1, lat2, lon1, lon2);
-
-        const distance = {
-            satellite1Id: id1,
-            satellite2Id: id2,
-            distance: calcdistance,
-            timestamp: new Date()
-        }
-        await this.saveDistanceRecord(distance);
-
         function measureDistance(lat1, lon1, lat2, lon2) {
             const earthRadius = 6371; // Radius of the Earth in kilometers
 
@@ -263,6 +253,19 @@ class SatelliteService {
             const distance = earthRadius * c; // Distance in kilometers
             return distance;
         }
+
+        const calcdistance = measureDistance(lat1, lat2, lon1, lon2);
+
+        const distance = {
+            satellite1Id: id1,
+            satellite2Id: id2,
+            distance: calcdistance,
+            timestamp: new Date()
+        }
+        await this.saveDistanceRecord(distance);
+        return distance
+
+
     }
 
     async saveDistanceRecord(distance) {
@@ -308,7 +311,7 @@ class SatelliteService {
 
             const query = { noradCatId: id };
             const projection = { _id: 0, latitude: 1, longitude: 1 };
-            ;
+
             const result = await collection.findOne(query, { projection });
 
             return result;
@@ -319,6 +322,33 @@ class SatelliteService {
 
         }
     }
+
+    async getAllSatellitesData() {
+        try {
+            const mongo_url = process.env.MONGODB_URI;
+            const dbName = 'satellite-trajectories';
+            const client = new MongoClient(mongo_url);
+
+            await client.connect();
+
+            const db = client.db(dbName);
+            const collection = db.collection('satellite_data');
+
+            //   // Retrieve all documents from the "satellite_data" collection
+            //   const data = await collection.find().toArray();
+
+            const query = {};
+            const projection = { _id: 0, NORAD_CAT_ID: 1, OBJECT_NAME: 1 };
+
+            const data = await collection.find(query, { projection }).toArray();
+
+            return data;
+        } catch (error) {
+            console.error('Error retrieving satellite data:', error);
+            throw error;
+        }
+    }
+
 
 
 

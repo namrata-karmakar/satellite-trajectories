@@ -62,6 +62,17 @@ class SatelliteController {
             res.status(500).json({ error: 'An error occurred while getting data' });
         }
     }
+
+    static async getAllSatellitesData(req, res) {
+        try {
+            const satelliteService = new SatelliteService();
+            const response = await satelliteService.getAllSatellitesData();
+            res.json(response);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while getting data' });
+        }
+    }
 }
 
 export default SatelliteController;
