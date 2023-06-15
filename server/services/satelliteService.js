@@ -92,8 +92,9 @@ class SatelliteService {
         var positionEcf   = satellite.eciToEcf(positionEci, gmst);
         var lookAngles    = satellite.ecfToLookAngles(observerGd, positionEcf);
         const elevation = lookAngles.elevation;
+        let satelliteLocation;
         if(timestamp_ground_station) { 
-            const satelliteLocation = {
+            satelliteLocation = {
                 noradCatId: noradCatId,
                 satellite: tle0,
                 latitude: latitudeDeg,
@@ -105,7 +106,7 @@ class SatelliteService {
                 elevation : elevation
             }
         } else {
-              const satelliteLocation = {
+              satelliteLocation = {
                   noradCatId: noradCatId,
                   satellite: tle0,
                   latitude: latitudeDeg,
