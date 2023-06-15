@@ -18,11 +18,12 @@ class SatelliteRoutes {
         router.put('/updateStarlinkGroundStationRelationships', SatelliteController.updateStarlinkGroundStationRelationships);
 
         router.get('/getAllStarlinkGroundStationCountry', SatelliteController.getAllStarlinkGroundStationCountry);
+      
+        router.get('/getActiveSatellitesData', SatelliteController.getAllSatellitesData);
 
         router.get('/getGroundStationPosition/id/:id', SatelliteController.getGroundStationDataById);
         
         router.get('/getResiduals/id/:id/timestamp/:timestamp', SatelliteController.getResiduals);
-
 
         return router;
     }
