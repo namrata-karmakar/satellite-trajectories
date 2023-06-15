@@ -1,0 +1,45 @@
+.mainContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px;
+}
+
+.dropdownContainer {
+  display: flex;
+  width: fit-content;
+  justify-content: space-around;
+  border: solid green 1px;
+  padding: 6px;
+  background-color: #e3e6e7d8;
+}
+
+.imagesContainer{
+  padding: 1%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); 
+  grid-gap: 10px;
+  border: 1px solid black; 
+  width: fit-content; 
+}
+img {
+  width: 100%;
+  height: auto;
+}
+.imgStyle{
+  size: 50%;
+  border: 1px solid black;
+}
+
+.btn {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #0056b3;
+}
