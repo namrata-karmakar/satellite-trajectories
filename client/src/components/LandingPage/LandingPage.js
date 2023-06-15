@@ -18,10 +18,10 @@ const LandingPage = () => {
           </Link>
         </li>
         <li>
-          <Link to="/usecase2" className="landing-page-link">
+          <Link to="/satelliteDistanceCalculation" className="landing-page-link">
             <div className="link-container">
               <span className="link-icon">&#x1F680;</span>
-              <span className="link-text">Use Case 2</span>
+              <span className="link-text">Use Case 2: Satellite Distance Calculation</span>
             </div>
           </Link>
         </li>

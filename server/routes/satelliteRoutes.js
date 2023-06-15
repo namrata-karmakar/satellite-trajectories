@@ -19,6 +19,8 @@ class SatelliteRoutes {
 
         router.get('/getAllStarlinkGroundStationCountry', SatelliteController.getAllStarlinkGroundStationCountry);
 
+        router.get('/getActiveSatellitesData', SatelliteController.getAllSatellitesData);
+
         return router;
     }
 }
