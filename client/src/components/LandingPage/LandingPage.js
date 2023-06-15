@@ -26,10 +26,10 @@ const LandingPage = () => {
           </Link>
         </li>
         <li>
-          <Link to="/usecase3" className="landing-page-link">
+          <Link to="/satelliteNotInOrbit" className="landing-page-link">
             <div className="link-container">
               <span className="link-icon">&#x1F30E;</span>
-              <span className="link-text">Use Case 3</span>
+              <span className="link-text">Use Case 3: Satellite Not In Orbit - Tanmay</span>
             </div>
           </Link>
         </li>
