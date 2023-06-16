@@ -1,11 +1,8 @@
-// import logo from './logo.svg';
-// import './App.css';
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-// import './App.css';
 import { Polyline } from 'react-leaflet';
 import './IssLiveLocation.css'
 
@@ -15,7 +12,6 @@ const IssLiveLocation = () => {
   const [latestRecordsArray, setLatestRecordsArray] = useState([])
   const [issPosition, setIssPosition] = useState(['-38.3944', '122.9835'])
   const myIcon = new L.Icon({
-    // iconUrl: require('./icons/satellite-iss.png'),
     iconUrl: require('../../assets/satellite-iss.png'),
     iconSize: [60, 60],
 });
@@ -28,6 +24,7 @@ const multilocation = new L.Icon({
 const mapRef = useRef(null);
 
   useEffect(() => {
+    fetchData();
     const interval = setInterval(() => {
       console.log('This will run every thirty second!');
       fetchData();
@@ -39,7 +36,7 @@ const mapRef = useRef(null);
     const interval = setInterval(() => {
       console.log('This will run every 2 minute!');
       fetchLatestRecords();
-    }, 180000);
+    }, 120000);
     return () => clearInterval(interval);
     
   }, [])
@@ -65,14 +62,6 @@ const mapRef = useRef(null);
     }
   }
 
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     console.log('This fetch for mongo will run every 20 second!');
-  //     fetchDataForMongo();
-  //   }, 20000);
-  //   return () => clearInterval(interval);
-  // }, [])
-
   const fetchData = async () => {
     try {
       console.log('Fetching data from API...');
@@ -81,9 +70,6 @@ const mapRef = useRef(null);
         console.log("Response", response.data)
         let myResponse = response.data;
         setIssPosition(myResponse)
-        // position1[0] = response.data[0]
-        // position1[1] = response.data[1]
-        // console.log("position...",position)
         console.log("issPosition in fetch...",issPosition)
       })
       .catch(error => {
@@ -109,18 +95,18 @@ const mapRef = useRef(null);
   return (
     <div className="App">
       <div className='radioButtonDiv'>
-      <div>
+      <div className='liveLocationRadio'>
         <input type="radio" name="live-location" value="live-location" checked={selected === "live-location"} onChange={changeHandler} />
-        <label htmlFor="client">Live location</label>
+        <label className='labelClass' htmlFor="client">Live location</label>
       </div>
-      <div>
+      <div className='historyTrackRadio'>
         <input type="radio" name="track" value="track" checked={selected === "track"} onChange={changeHandler} />
-        <label htmlFor="client">Show previous locations</label>
+        <label className='labelClass' htmlFor="client">Show previous locations</label>
       </div>
       </div>
       {selected === "live-location" ?
       <div>
-        <h5 style={{backgroundColor: 'white', position: 'absolute', top: '10px', left: '10px', padding: '10px', zIndex: '1000'}}>ISS-Live-Location Latitude: {issPosition[0]}, Longitude: {issPosition[1]}</h5>
+        <h5 className='latLongDataHeading'>ISS-Live-Location Latitude: {issPosition[0]}, Longitude: {issPosition[1]}</h5>
         <MapContainer center={issPosition} zoom={3} style={{ height: '568px', width: '100%' }}>
         <TileLayer
           attribution="Map data &copy; <a href='https://www.openstreetmap.org/'>OpenStreetMap</a> contributors"
@@ -135,8 +121,8 @@ const mapRef = useRef(null);
       }
       {selected === "track" ?
       <div>
-        <h5 style={{backgroundColor: 'white', position: 'absolute', top: '10px', left: '10px', padding: '10px', zIndex: '1000'}}>ISS-Live-Location Latitude: {issPosition[0]}, Longitude: {issPosition[1]}</h5>
-        <MapContainer center={issPosition} zoom={3} style={{ height: '568px', width: '100%' }}>
+        <h5 className='latLongDataHeading'>ISS-Live-Location Latitude: {issPosition[0]}, Longitude: {issPosition[1]}</h5>
+        <MapContainer center={issPosition} zoom={6} style={{ height: '568px', width: '100%' }}>
         <TileLayer
           attribution="Map data &copy; <a href='https://www.openstreetmap.org/'>OpenStreetMap</a> contributors"
           url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
