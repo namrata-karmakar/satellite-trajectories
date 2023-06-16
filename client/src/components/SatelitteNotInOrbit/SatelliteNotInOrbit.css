@@ -1,14 +1,46 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
+.distanceContainer{
+  background-image: url('../../../public/images/Background.jpg');
+  background-size: cover;
+ background-position: center;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
 }
 
-.title {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #010000;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-}
+.mapContainer{
+   background-color: hsl(208, 42%, 53%);
+ }
+ 
+.calculateDistance{
+   background-color: rgba(18, 21, 23, 0.473);
+   background-size: 100%;
+   width: 70%;
+   margin: auto;
+   padding: 10px;
+   border-radius: 5px;
+   align-items: center;
+   box-shadow: 0 0 5px #000; 
+ }
+
+.calculateDistanceTitle{
+   text-align: center;
+   color: rgba(255, 253, 253, 0.681);
+   padding: 5px;
+ }
+
+.distance{
+   color: rgba(255, 253, 253, 0.681);
+   text-align: center;
+   margin: 0;
+ }
+
+
+
+
+
+
+
+
+
+

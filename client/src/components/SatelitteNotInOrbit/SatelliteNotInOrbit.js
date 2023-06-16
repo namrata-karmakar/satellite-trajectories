@@ -18,7 +18,7 @@ const SatelliteNotInOrbit = () => {
 
     useEffect(() => {
         async function fetchData() {
-            await axios.get("http://localhost:3000/api/getActiveSatellitesData").then((res) => {
+            await axios.get("http://localhost:3001/api/getActiveSatellitesData").then((res) => {
                 const options = res.data.map((item => {
                     return {
                         key: item.NORAD_CAT_ID,
@@ -34,7 +34,7 @@ const SatelliteNotInOrbit = () => {
 
     const getSelectedSatellite = (val) => {
         if (val) {
-            axios.get(`http://localhost:3000/api/getGroundStationPosition/id/${val}`)
+            axios.get(`http://localhost:3001/api/getGroundStationPosition/id/${val}`)
                 .then(res => {
                     const { Norad_Cat_id, Last_timestamp, } = res.data[0];
                     const lastLat = res.data[0]['Last_Latitude(Degrees)'];
@@ -52,7 +52,7 @@ const SatelliteNotInOrbit = () => {
 
     const getResiduals = () => {
         if (satellite) {
-            axios.get(`http://localhost:3000/api/getResiduals/id/${satellite.Norad_Cat_id}/timestamp/${satellite.Last_timestamp}`).then(res => {
+            axios.get(`http://localhost:3001/api/getResiduals/id/${satellite.Norad_Cat_id}/timestamp/${satellite.Last_timestamp}`).then(res => {
                 setResidual(res.data)
             }).catch(err => console.log(err.message))
         };
