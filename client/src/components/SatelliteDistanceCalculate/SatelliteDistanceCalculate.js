@@ -23,7 +23,7 @@ const SatelliteDistanceCalculate = () => {
 
     useEffect(() => {
         async function fetchData() {
-            await axios.get("http://localhost:3000/api/getActiveSatellitesData").then((res) => {
+            await axios.get("http://localhost:3001/api/getActiveSatellitesData").then((res) => {
                 const options = res.data.map((item => {
                     return {
                         key: item.NORAD_CAT_ID,
@@ -40,7 +40,7 @@ const SatelliteDistanceCalculate = () => {
     const getSelectedSatellite1 = (val) => {
         if (val) {
 
-            axios.get(`http://localhost:3000/api/predictSatellitePosition/norad_cat_id/${val}`).then(res => {
+            axios.get(`http://localhost:3001/api/predictSatellitePosition/norad_cat_id/${val}`).then(res => {
                 const { latitude, longitude, noradCatId } = res.data
                 setSatellite1({
                     coord: [latitude, longitude],
@@ -53,7 +53,7 @@ const SatelliteDistanceCalculate = () => {
     const getSelectedSatellite2 = (val) => {
         if (val) {
 
-            axios.get(`http://localhost:3000/api/predictSatellitePosition/norad_cat_id/${val}`).then(res => {
+            axios.get(`http://localhost:3001/api/predictSatellitePosition/norad_cat_id/${val}`).then(res => {
                 const { latitude, longitude, noradCatId } = res.data
                 setSatellite2({
                     "coord": [latitude, longitude],
@@ -66,7 +66,7 @@ const SatelliteDistanceCalculate = () => {
     const getDistance = () => {
         if (satellite1 && satellite2) {
 
-            axios.get(`http://localhost:3000/api//measureDistance/satelliteId1/${satellite1.noradCatId}/satelliteId2/${satellite2.noradCatId}`).then(res => {
+            axios.get(`http://localhost:3001/api//measureDistance/satelliteId1/${satellite1.noradCatId}/satelliteId2/${satellite2.noradCatId}`).then(res => {
                 setDistance(res.data.distance)
                 console.log("distance", distance)
             }).catch(err => console.log(err.message))
