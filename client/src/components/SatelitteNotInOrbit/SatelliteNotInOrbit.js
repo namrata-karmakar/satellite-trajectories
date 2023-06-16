@@ -60,24 +60,24 @@ const SatelliteNotInOrbit = () => {
 
     return (
         <div className='container'>
-            <div style={{ width: '80%', height: '400px' }}>
-                <MapContainer center={[49.4979, 8.4682]} zoom={0} style={{ height: '100%' }}>
+            <div style={{ width: '100%', height: '460px' }}>
+                <MapContainer center={[49.4979, 8.4682]} zoom={0} style={{ width:'100%', height: '100%' }}>
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     {satellite && <Marker position={satellite.coord1} icon={icon}>
-                        <Popup>Position 1</Popup>
+                        <Popup>Observed Value</Popup>
                     </Marker>}
                     {satellite && <Marker position={satellite.coord2} icon={icon}>
-                        <Popup>Position 2</Popup>
+                        <Popup>Predicted Value</Popup>
                     </Marker>}
                     {residual && <Polyline positions={[satellite.coord1, satellite.coord2]} pathOptions={polyOptions}>
                         <Popup>{residual}</Popup>
                     </Polyline>}
                 </MapContainer>
             </div>
-            <h1 className='title'>Is the satellite in orbit?</h1>
+            <h1 className='title'>Is the satellite in orbit height?</h1>
             <div>
                 <SelectDropdown sendVal={getSelectedSatellite} values={satelliteData} />
                 <Button primary onClick={getResiduals}>Submit</Button>

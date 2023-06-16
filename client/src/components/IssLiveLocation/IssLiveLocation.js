@@ -46,7 +46,7 @@ const mapRef = useRef(null);
 
   const fetchLatestRecords = async () => {
     try {
-      const latestRecordsResponse = await axios.get("http://localhost:3000/records")
+      const latestRecordsResponse = await axios.get("http://localhost:3001/records")
       .then(latestRecordsResponse => {
         const objArray = latestRecordsResponse.data
         const arrayOfArrays = objArray.map(obj => Object.values(obj));
@@ -65,7 +65,7 @@ const mapRef = useRef(null);
   const fetchData = async () => {
     try {
       console.log('Fetching data from API...');
-      const response = await axios.get('http://localhost:3000/location')
+      const response = await axios.get('http://localhost:3001/location')
       .then(response => {
         console.log("Response", response.data)
         let myResponse = response.data;

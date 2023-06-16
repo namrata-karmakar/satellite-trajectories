@@ -1,4 +1,4 @@
-.distanceContainer{
+.container{
   background-image: url('../../../public/images/Background.jpg');
   background-size: cover;
  background-position: center;
@@ -12,7 +12,7 @@
    background-color: hsl(208, 42%, 53%);
  }
  
-.calculateDistance{
+.container{
    background-color: rgba(18, 21, 23, 0.473);
    background-size: 100%;
    width: 70%;
@@ -21,18 +21,6 @@
    border-radius: 5px;
    align-items: center;
    box-shadow: 0 0 5px #000; 
- }
-
-.calculateDistanceTitle{
-   text-align: center;
-   color: rgba(255, 253, 253, 0.681);
-   padding: 5px;
- }
-
-.distance{
-   color: rgba(255, 253, 253, 0.681);
-   text-align: center;
-   margin: 0;
  }
 
 

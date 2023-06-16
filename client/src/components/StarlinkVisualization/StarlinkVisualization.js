@@ -7,7 +7,7 @@ const StarlinkVisualization = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/getAllStarlinkGroundStationCountry');
+        const response = await fetch('http://localhost:3001/api/getAllStarlinkGroundStationCountry');
         const jsonData = await response.json();
         setData(jsonData);
       } catch (error) {
