@@ -31,7 +31,7 @@ const DisplaySatelliteImage = () => {
     console.log("queryParams...", queryParams);
 
     const response = await axios
-      .get(`http://localhost:3000/api/query?${queryParams}`)
+      .get(`http://localhost:3001/api/query?${queryParams}`)
       .then((reponse) => {
         console.log("response.data...", reponse.data);
         console.log("Response from api...", reponse);

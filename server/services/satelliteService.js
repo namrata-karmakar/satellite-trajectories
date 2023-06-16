@@ -6,7 +6,7 @@ import { parse } from 'json2csv';
 import UploadToS3Service from './uploadToS3Service.js';
 import { promises as fsPromises } from 'fs';
 import { driver } from '../app.js';
-import { sqrt, square, cos, sin, acos } from 'mathjs';
+import { sqrt, square, cos, sin, acos,abs } from 'mathjs';
 
 
 class SatelliteService {
@@ -513,7 +513,9 @@ class SatelliteService {
             const dy = y2 - y1;
             const dz = z2 - z1;
 
-            return sqrt(square(dx) + square(dy) + square(dz));
+            const distance = sqrt(square(dx) + square(dy) + square(dz))
+
+            return abs(height2-height1);
 
         } catch (error) {
             console.error('Failed to calculate residuals', error.message);
