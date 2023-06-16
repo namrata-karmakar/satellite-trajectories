@@ -123,7 +123,7 @@ function cache(req, res, next) {
 async function getLatLong(req, res, next) {
   try {
     console.log("Fetching data...");
-    // console.time('API Response Time');
+    console.time('API Response Time');
     const response = await fetch("http://api.open-notify.org/iss-now.json");
     const data = await response.json();
     const location = data.iss_position;
